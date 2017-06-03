@@ -33,6 +33,12 @@
     <ClCompile Include="..\..\src\DataPacket\NetworkMessage.cpp">
       <Filter>Source Files\DataPacket</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\SimpleFilesLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\EntryPoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Socket\Socket.h">
@@ -45,6 +51,9 @@
       <Filter>Source Files\DataPacket</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\common.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\SimpleFilesLogger.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
