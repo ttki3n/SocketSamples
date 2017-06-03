@@ -36,7 +36,7 @@
     <ClCompile Include="..\..\src\SimpleFilesLogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\EntryPoint.cpp">
+    <ClCompile Include="..\..\src\ClientEntryPoint.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

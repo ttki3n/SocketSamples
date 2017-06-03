@@ -131,7 +131,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\Connection\TCPConnection.cpp" />
     <ClCompile Include="..\..\src\DataPacket\NetworkMessage.cpp" />
-    <ClCompile Include="..\..\src\EntryPoint.cpp" />
+    <ClCompile Include="..\..\src\ClientEntryPoint.cpp" />
     <ClCompile Include="..\..\src\SimpleFilesLogger.cpp" />
     <ClCompile Include="..\..\src\Socket\Socket.cpp" />
   </ItemGroup>
