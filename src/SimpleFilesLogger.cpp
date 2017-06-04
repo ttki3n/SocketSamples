@@ -69,4 +69,5 @@ void SimpleFilesLogger::PrintToConsole(int loglevel, const char* fmt, ...)
 	tmp[1024 - 1] = '\0';
 	va_end(maker);
 	OutputDebugStringA(tmp);
+	INTERACTIVE_PRINT(tmp);
 }

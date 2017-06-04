@@ -10,6 +10,8 @@
 #define LOGGER_INFO(fmt, ...)		SimpleFilesLogger::PrintToConsole(SimpleFilesLogger::LVL_INFO, fmt, ##__VA_ARGS__)
 #define LOGGER_DEBUG(fmt, ...)		SimpleFilesLogger::PrintToConsole(SimpleFilesLogger::LVL_DEBUG, fmt, ##__VA_ARGS__)
 
+#define INTERACTIVE_PRINT printf
+
 class SimpleFilesLogger
 {
 public:

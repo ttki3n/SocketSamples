@@ -64,12 +64,10 @@ int TCPConnection::ConnectToServer(const std::string& host, unsigned int port)
 		return TCP_ERROR_RESOLVING_HOST;
 	}
 	
+	
 	for (res = res0; res; res = res->ai_next)
 	{
-		m_socket = socket(res->ai_family,
-			res->ai_socktype,
-			res->ai_protocol);
-
+		m_socket = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (!(m_socket < 0))
 			break;
 	}
@@ -79,32 +77,7 @@ int TCPConnection::ConnectToServer(const std::string& host, unsigned int port)
 		LOGGER_WARN("ERROR: creating socket failed! err\n");
 		return TCP_ERROR_CONNECT_FAIL;
 	}
-	//*
-	char ipstr[INET6_ADDRSTRLEN];
-	struct addrinfo *p;
-	for(p = res;p != NULL; p = p->ai_next) {
-        void *addr;
-        char *ipver;
-
-        // get the pointer to the address itself,
-        // different fields in IPv4 and IPv6:
-        if (p->ai_family == AF_INET) { // IPv4
-            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
-            addr = &(ipv4->sin_addr);
-            ipver = "IPv4";
-        } else { // IPv6
-            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
-            addr = &(ipv6->sin6_addr);
-            ipver = "IPv6";
-        }
-
-        // convert the IP to a string and print it:
-        inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
-		LOGGER_DEBUG("  %s: %s\n", ipver, ipstr);
-    }
-
-	
-	/**/
+	addrinfo_printtoString(*res);
 	if (connect(m_socket, (struct sockaddr *)res->ai_addr, res->ai_addrlen) < 0)
 	{
 		LOGGER_WARN("ERROR: connecting to server failed! err %d\n", WSAGetLastError());
@@ -159,7 +132,8 @@ int TCPConnection::SendData(const char* data, unsigned int dataSize)
 
 
 	fd_set setW;
-	FD_ZERO(&setW);	FD_SET(m_socket, &setW);
+	FD_ZERO(&setW);
+	FD_SET(m_socket, &setW);
 
 	int result = select(m_socket + 1, NULL, &setW, NULL, &tval);
 	if (result < 0)
@@ -173,7 +147,7 @@ int TCPConnection::SendData(const char* data, unsigned int dataSize)
 	if (result == 0)
 	{
 		//this means the socket is not ready for writing after 1 second!
-		LOGGER_DEBUG("ERROR: sending data socket busy! Check hotspot connection! err %d\n", WSAGetLastError());
+		LOGGER_DEBUG("ERROR: sending data socket busy! err %d\n", WSAGetLastError());
 		CloseConnection();
 
 		return TCP_ERROR_SOCKET_BUSY;
@@ -210,23 +184,14 @@ int TCPConnection::ReceiveData(char* receivedData, unsigned int receivedDataBuff
 	}
 
 	fd_set setR;
-	timeval tval = { 0, 0 };
+	timeval tval = { 0, 0 }; // this make select return immediately
 	FD_ZERO(&setR);
 	FD_SET(m_socket, &setR);
 
 	size_t currentOffset = 0;
 	//check to see if we received any data
-	//while (select(m_socket + 1, &setR, NULL, NULL, &tval))
-	{
-
-		//if(iResult < 0)
-		//{
-		//	LOGGER_DEBUG("ERROR: ReceiveData select failed! err %d\n", NETWORK_ERROR() );
-		//	CloseConnection();
-
-		//	return TCP_ERROR_SOCKET_NOT_READY_FOR_READING;
-		//}
-
+	while (select(m_socket + 1, &setR, NULL, NULL, &tval))
+	{		
 		int result = recv(m_socket, m_receiveDataBuffer, TCP_RECV_DATA_BUFF_SIZE, 0);
 		if (result < 0)
 		{

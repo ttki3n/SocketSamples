@@ -39,8 +39,8 @@ public:
 	virtual ~TCPConnection();
 
 	void PrepareConnection();
-	int ConnectToServer(const std::string& host, unsigned int port);
 	void CloseConnection();
+	int ConnectToServer(const std::string& host, unsigned int port);	
 	
 	int SendData(const char* data, unsigned int dataSize);
 	int	ReceiveData(char* receivedData, unsigned int receivedDataBuffLength, unsigned int& dataLength);
