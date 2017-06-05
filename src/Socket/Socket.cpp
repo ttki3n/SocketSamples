@@ -1,7 +1,7 @@
 #include "Socket.h"
 #include "SimpleFilesLogger.h"
 
-
+#include <algorithm>
 
 
 #define SCASE(x,result) case x: result = #x;break;
@@ -170,4 +170,20 @@ void* get_in_addr(sockaddr *sa)
 	}
 
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+char random_char()
+{
+	static const char charset[] =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
+	static const size_t charset_max_index = (sizeof(charset) - 1);
+	return charset[rand() % charset_max_index];
+}
+std::string random_string(size_t length)
+{	
+	std::string str(length, 0);
+	std::generate_n(str.begin(), length, random_char);
+	return str;
 }
