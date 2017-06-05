@@ -14,7 +14,7 @@ public:
 	enum ConnectionStates
 	{
 		TCP_CONNECTION_NONE,
-		TCP_CONNECTION_CONNECTED,
+		TCP_CONNECTION_READY,
 		TCP_CONNECTION_CLOSED
 	};
 
@@ -42,6 +42,7 @@ public:
 	void CloseConnection();
 	int ConnectToServer(const std::string& host, unsigned int port);	
 	
+	void SetSocket(int socket);
 	int SendData(const char* data, unsigned int dataSize);
 	int	ReceiveData(char* receivedData, unsigned int receivedDataBuffLength, unsigned int& dataLength);
 
@@ -49,10 +50,10 @@ public:
 	int GetConnectionState();
 
 private:
-	int m_port;	
+	//int m_port;	
 	int m_socket;
 	int m_connectionState;
-	std::string m_host;
+	//std::string m_host;
 	char m_receiveDataBuffer[TCP_RECV_DATA_BUFF_SIZE];
 	
 

@@ -5,7 +5,7 @@
 #include "Connection\ServerTCPConnection.h"
 
 
-#define BUILD_SERVER 1
+#define BUILD_SERVER 0
 #if BUILD_SERVER
 
 

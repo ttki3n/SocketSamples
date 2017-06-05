@@ -41,10 +41,16 @@ void TCPConnection::CloseConnection()
 	WSACleanup();
 }
 
+void TCPConnection::SetSocket(int socket)
+{
+	m_socket = socket;
+	// assume that socket is ready
+	// this is used for handling client connection at server side
+	SetConnectionState(TCP_CONNECTION_READY);
+}
+
 int TCPConnection::ConnectToServer(const std::string& host, unsigned int port)
 {
-	m_host = host;
-	m_port = port;
 
 	char serverPort[16];
 	memset(serverPort, 0, 16);
@@ -56,7 +62,7 @@ int TCPConnection::ConnectToServer(const std::string& host, unsigned int port)
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
-	int error = getaddrinfo(m_host.c_str(), serverPort, &hints, &res0);
+	int error = getaddrinfo(host.c_str(), serverPort, &hints, &res0);
 
 	if (error)
 	{
@@ -101,7 +107,7 @@ int TCPConnection::ConnectToServer(const std::string& host, unsigned int port)
 
 	LOGGER_DEBUG("Succesfully connected to server %s, port %d\n", host.c_str(), port);
 
-	SetConnectionState(TCP_CONNECTION_CONNECTED);
+	SetConnectionState(TCP_CONNECTION_READY);
 
 	return TCP_OPERATION_SUCCESSFULL;
 }
@@ -120,7 +126,7 @@ int TCPConnection::SendData(const char* data, unsigned int dataSize)
 		return TCP_ERROR_INVALID_DATA;
 	}
 
-	if (GetConnectionState() != TCP_CONNECTION_CONNECTED)
+	if (m_socket < 0 || GetConnectionState() != TCP_CONNECTION_READY)
 	{
 		LOGGER_DEBUG("ERROR: SendData failed because communication not yet started!\n");
 		return TCP_ERROR_CONNECTION_NOT_READY;
@@ -177,7 +183,7 @@ int TCPConnection::SendData(const char* data, unsigned int dataSize)
 
 int TCPConnection::ReceiveData(char* receivedData, unsigned int receivedDataBuffLength, unsigned int& dataLength)
 {
-	if (GetConnectionState() != TCP_CONNECTION_CONNECTED)
+	if (m_socket < 0 || GetConnectionState() != TCP_CONNECTION_READY)
 	{
 		LOGGER_DEBUG("ERROR: ReceiveData failed because communication not yet started!\n");
 		return TCP_ERROR_CONNECTION_NOT_READY;
