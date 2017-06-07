@@ -22,6 +22,12 @@
     <Filter Include="Source Files\DataPacket">
       <UniqueIdentifier>{e8f333a1-59f1-41e4-b976-4a4afe97fcfd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Server">
+      <UniqueIdentifier>{fc3d0688-1861-4fed-81f5-3ec34d44aaf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Client">
+      <UniqueIdentifier>{259dcf9d-f67d-49d9-be4a-3197af301d94}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Socket\Socket.cpp">
@@ -45,6 +51,12 @@
     <ClCompile Include="..\..\src\ServerEntryPoint.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Server\Server.cpp">
+      <Filter>Source Files\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Client\ClientApp.cpp">
+      <Filter>Source Files\Client</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Socket\Socket.h">
@@ -64,6 +76,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\Connection\ServerTCPConnection.h">
       <Filter>Source Files\Connection</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Server\Server.h">
+      <Filter>Source Files\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Client\ClientApp.h">
+      <Filter>Source Files\Client</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

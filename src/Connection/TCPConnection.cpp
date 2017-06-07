@@ -4,6 +4,7 @@
 TCPConnection::TCPConnection()
 {
 	m_socket = -1;
+	m_currentOffset = 0;
 	PrepareConnection();
 	SetConnectionState(TCP_CONNECTION_NONE);
 }
@@ -31,11 +32,7 @@ void TCPConnection::PrepareConnection()
 
 void TCPConnection::CloseConnection()
 {
-	if (m_socket != -1)
-	{
-		closesocket(m_socket);
-		m_socket = -1;
-	}
+	CLOSESOCKET(m_socket);	
 
 	SetConnectionState(TCP_CONNECTION_CLOSED);
 	WSACleanup();
@@ -66,7 +63,7 @@ int TCPConnection::ConnectToServer(const std::string& host, unsigned int port)
 
 	if (error)
 	{
-		LOGGER_WARN("ERROR: getaddrinfo failed! err %d\n", WSAGetLastError());
+		LOGGER_WARN("ERROR: getaddrinfo failed! err %d\n", GETLASTERROR());
 		return TCP_ERROR_RESOLVING_HOST;
 	}
 	
@@ -86,7 +83,7 @@ int TCPConnection::ConnectToServer(const std::string& host, unsigned int port)
 	addrinfo_printtoString(*res);
 	if (connect(m_socket, (struct sockaddr *)res->ai_addr, res->ai_addrlen) < 0)
 	{
-		LOGGER_WARN("ERROR: connecting to server failed! err %d\n", WSAGetLastError());
+		LOGGER_WARN("ERROR: connecting to server failed! err %d\n", GETLASTERROR());
 		return TCP_ERROR_CONNECT_FAIL;
 	}
 
@@ -144,7 +141,7 @@ int TCPConnection::SendData(const char* data, unsigned int dataSize)
 	int result = select(m_socket + 1, NULL, &setW, NULL, &tval);
 	if (result < 0)
 	{
-		LOGGER_DEBUG("ERROR: SendData select failed! err %d\n", WSAGetLastError());
+		LOGGER_DEBUG("ERROR: SendData select failed! err %d\n", GETLASTERROR());
 		CloseConnection();
 
 		return TCP_ERROR_SOCKET_BUSY;
@@ -153,7 +150,7 @@ int TCPConnection::SendData(const char* data, unsigned int dataSize)
 	if (result == 0)
 	{
 		//this means the socket is not ready for writing after 1 second!
-		LOGGER_DEBUG("ERROR: sending data socket busy! err %d\n", WSAGetLastError());
+		LOGGER_DEBUG("ERROR: sending data socket busy! err %d\n", GETLASTERROR());
 		CloseConnection();
 
 		return TCP_ERROR_SOCKET_BUSY;
@@ -163,7 +160,7 @@ int TCPConnection::SendData(const char* data, unsigned int dataSize)
 	result = send(m_socket, (const char *)data, dataSize, 0);
 	if (result < 0)
 	{
-		LOGGER_DEBUG("ERROR: sending data on socket failed! err %d\n", WSAGetLastError());
+		LOGGER_DEBUG("ERROR: sending data on socket failed! err %d\n", GETLASTERROR());
 		CloseConnection();
 		return TCP_ERROR_SENDING_DATA_FAIL;
 	}
@@ -176,7 +173,7 @@ int TCPConnection::SendData(const char* data, unsigned int dataSize)
 	}
 	else
 	{
-		LOGGER_DEBUG("ERROR: incomplete send! bytes sent %d, data size %d!err %d\n", result, dataSize, WSAGetLastError());
+		LOGGER_DEBUG("ERROR: incomplete send! bytes sent %d, data size %d!err %d\n", result, dataSize, GETLASTERROR());
 		return TCP_ERROR_SEND_INCOMPLETED;
 	}
 }
@@ -194,14 +191,15 @@ int TCPConnection::ReceiveData(char* receivedData, unsigned int receivedDataBuff
 	FD_ZERO(&setR);
 	FD_SET(m_socket, &setR);
 
-	size_t currentOffset = 0;
-	//check to see if we received any data
+	m_currentOffset = 0;
+
+	// check to see if we received any data	
 	while (select(m_socket + 1, &setR, NULL, NULL, &tval))
 	{		
-		int result = recv(m_socket, m_receiveDataBuffer, TCP_RECV_DATA_BUFF_SIZE, 0);
+		int result = recv(m_socket, m_receiveDataBuffer, TCP_INTERNAL_RECV_DATA_BUFF_SIZE, 0);
 		if (result < 0)
 		{
-			LOGGER_DEBUG("ERROR: Receive data failed! result %d, err %d\n", result, WSAGetLastError());
+			LOGGER_DEBUG("ERROR: Receive data failed! result %d, err %d\n", result, GETLASTERROR());
 			CloseConnection();
 
 			return TCP_ERROR_RECEIVING_DATA;
@@ -215,24 +213,24 @@ int TCPConnection::ReceiveData(char* receivedData, unsigned int receivedDataBuff
 			return TCP_ERROR_CONNECTION_CLOSED_BY_OTHER_PEER;
 		}
 
-		if (result > TCP_RECV_DATA_BUFF_SIZE)
+		if (result > TCP_INTERNAL_RECV_DATA_BUFF_SIZE)
 		{
-			LOGGER_CRIT("ERROR: Internal receive BUFF too small! size %d\n", result);			
-			return TCP_ERROR_INTERNAL_BUFFER_TO_SMALL;
+			LOGGER_CRIT("ERROR: Internal receive buffer too small! data size %d\n", result);			
+			return TCP_ERROR_INTERNAL_BUFFER_TOO_SMALL;
 		}
 
-		if (currentOffset + result > receivedDataBuffLength)
+		if (m_currentOffset + result > receivedDataBuffLength)
 		{
-			LOGGER_DEBUG("ERROR: Receive messages are bigger than recv buff! size %d\n", currentOffset + result);
-			return TCP_ERROR_PROVIDED_BUFFER_TO_SMALL;
+			LOGGER_CRIT("ERROR: Receive messages are bigger than recv buff! size %d\n", m_currentOffset + result);
+			return TCP_ERROR_PROVIDED_BUFFER_TOO_SMALL;
 		}
-		memcpy(receivedData + currentOffset, m_receiveDataBuffer, result);
-		currentOffset += result;
+		memcpy(receivedData + m_currentOffset, m_receiveDataBuffer, result);
+		m_currentOffset += result;
 
 		LOGGER_DEBUG("Received %d bytes\n", result);
 	}
 
-	dataLength = currentOffset;
+	dataLength = m_currentOffset;
 
 	return TCP_OPERATION_SUCCESSFULL;
 }

@@ -122,19 +122,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\Client\ClientApp.h" />
     <ClInclude Include="..\..\src\common.h" />
     <ClInclude Include="..\..\src\Connection\TCPConnection.h" />
     <ClInclude Include="..\..\src\Connection\ServerTCPConnection.h" />
     <ClInclude Include="..\..\src\DataPacket\NetworkMessage.h" />
+    <ClInclude Include="..\..\src\Server\Server.h" />
     <ClInclude Include="..\..\src\SimpleFilesLogger.h" />
     <ClInclude Include="..\..\src\Socket\Socket.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\Client\ClientApp.cpp" />
     <ClCompile Include="..\..\src\Connection\ServerTCPConnection.cpp" />
     <ClCompile Include="..\..\src\Connection\TCPConnection.cpp" />
     <ClCompile Include="..\..\src\DataPacket\NetworkMessage.cpp" />
     <ClCompile Include="..\..\src\ClientEntryPoint.cpp" />
     <ClCompile Include="..\..\src\ServerEntryPoint.cpp" />
+    <ClCompile Include="..\..\src\Server\Server.cpp" />
     <ClCompile Include="..\..\src\SimpleFilesLogger.cpp" />
     <ClCompile Include="..\..\src\Socket\Socket.cpp" />
   </ItemGroup>

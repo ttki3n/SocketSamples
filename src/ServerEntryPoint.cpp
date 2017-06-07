@@ -39,22 +39,22 @@ int main(int argc, char** argv)
 	char buffer[10240];
 	while (1)
 	{
-		if (connection.AcceptNewConnection(highest_client_id))
+		if (connection.AcceptNewConnection())
 		{
 			//send Welcome
 			char text[50] = "Welcome new user";
-			connection.SendData(highest_client_id, text, sizeof(text));
+			//connection.SendData(highest_client_id, text, sizeof(text));
 			highest_client_id++;
 		}
 
 		for (unsigned int i = 0; i < highest_client_id; i++)
 		{
 			datalen = 0;
-			connection.ReceiveData(i, buffer, sizeof(buffer), datalen);
+			//connection.ReceiveData(i, buffer, sizeof(buffer), datalen);
 			if (datalen > 0)
 			{
 				message = "We received your message: " + std::string(buffer, datalen);				
-				connection.SendData(i, message.c_str(), message.length());
+				//connection.SendData(i, message.c_str(), message.length());
 				//memset(buffer, 0, sizeof(buffer));
 			}
 		}

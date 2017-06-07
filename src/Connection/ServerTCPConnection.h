@@ -1,10 +1,29 @@
 #pragma once
 
 #include <map>
+#include <string>
 #include "common.h"
 #include "Socket\Socket.h"
 
 #define SERVER_TCP_RECV_DATA_BUFF_SIZE 1024*32
+
+// store data of connections
+class TCPPeersList
+{
+public:
+	TCPPeersList();
+	virtual ~TCPPeersList();
+
+	bool AddNewTCPPeer(int socket, const std::string& clientid);
+	bool RemoveTCPPeer(const std::string& clientid);
+
+	int GetSocketById(const std::string& clientid);
+
+private:
+	std::map<std::string, int> m_peerList; // pair of clientid and clientsocket
+};
+
+
 class ServerTCPConnection
 {
 public:
@@ -37,25 +56,24 @@ public:
 	void CloseConnection();
 	int Listen(unsigned int port, unsigned int backlog);
 	
-	bool AcceptNewConnection(unsigned int& clientid);
+	bool AcceptNewConnection();
 
-	int SendData(unsigned int clientid, const char* data, unsigned int dataSize);
-	int	ReceiveData(unsigned int clientid, char* receivedData, unsigned int receivedDataBuffLength, unsigned int& dataLength);
+	int SendData(std::string clientid, const char* data, unsigned int dataSize);
+	int	ReceiveData(std::string clientid, char* receivedData, unsigned int receivedDataBuffLength, unsigned int& dataLength);
 
-	int GetClientSocketById(unsigned int clientid);
+	std::string GenerateDummyClientid();
+	
 	void SetConnectionState(int state);
 	int GetConnectionState();
 
+	std::string GetLastConnectedClientId();
 private:
-	int m_listenerSock;
-	int m_newclientSock; //newest connected client socket
 	int m_connectionState;
-	int m_port;
-	int m_fdmax;
-	fd_set m_clients; // store all client socket
-	fd_set m_readFds; // use to copy the m_clients each time pass to select
-	std::map<unsigned int, int> sessions; // pair of clientid and clientsocket
-
+	int m_listenerSock;
+	int m_lastClientSock; //newest connected client socket	
+	
+	std::string m_lastClientId;
+	TCPPeersList m_peersList;
 	char m_receiveDataBuffer[SERVER_TCP_RECV_DATA_BUFF_SIZE];
 
 };

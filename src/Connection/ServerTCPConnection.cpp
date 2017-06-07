@@ -1,11 +1,64 @@
 #include "ServerTCPConnection.h"
 #include "SimpleFilesLogger.h"
 
+#include <time.h>
+TCPPeersList::TCPPeersList()
+{
+
+}
+
+TCPPeersList::~TCPPeersList()
+{
+
+}
+
+bool TCPPeersList::AddNewTCPPeer(int socket, const std::string& clientid)
+{
+	if (m_peerList.find(clientid) != m_peerList.end())
+	{
+		LOGGER_WARN("AddNewTCPPeer FAILED : Client %s socket %d already in list!\n", clientid.c_str(), socket);
+		return false;
+	}
+
+	m_peerList.insert(std::pair<std::string,int> (clientid, socket));
+	return true;
+}
+
+bool TCPPeersList::RemoveTCPPeer(const std::string& clientid)
+{
+	std::map<std::string, int>::iterator it = m_peerList.find(clientid);
+	if (it == m_peerList.end())
+	{
+		LOGGER_DEBUG("RemoveTCPPeer FAILED : Client %s isn't in list!\n", clientid.c_str());
+		return false;
+	}
+	
+	//shutdown(it->second, SD_BOTH);
+	CLOSESOCKET(it->second);
+
+
+	LOGGER_INFO("RemoveTCPPeer: %s\n", clientid.c_str());
+	
+	m_peerList.erase(it);
+	return true;
+
+}
+
+int TCPPeersList::GetSocketById(const std::string& clientid)
+{
+	std::map<std::string, int>::iterator it = m_peerList.find(clientid);
+	if (it != m_peerList.end())
+	{
+		return it->second;
+	}
+	return -1;
+}
+
+
 ServerTCPConnection::ServerTCPConnection()
 {
 	m_listenerSock = -1;
-	m_newclientSock = -1;
-	FD_ZERO(&m_clients);
+	m_lastClientSock = -1;	
 
 	PrepareConnection();
 	SetConnectionState(TCP_CONNECTION_NONE);
@@ -34,25 +87,16 @@ void ServerTCPConnection::PrepareConnection()
 
 void ServerTCPConnection::CloseConnection()
 {
-	if (m_listenerSock != -1)
-	{
-		closesocket(m_listenerSock);
-		m_listenerSock = -1;
-	}
-
-	if (m_newclientSock != -1)
-	{
-		closesocket(m_newclientSock);
-		m_newclientSock = -1;
-	}
+	CLOSESOCKET(m_listenerSock);		
+	// should close all client sock ?
+	CLOSESOCKET(m_lastClientSock);		
 
 	SetConnectionState(TCP_CONNECTION_CLOSED);
 	WSACleanup();
 }
 
 int ServerTCPConnection::Listen(unsigned int port, unsigned int backlog)
-{
-	m_port = port;
+{	
 	
 	char serverPort[16];
 	memset(serverPort, 0, 16);
@@ -85,13 +129,13 @@ int ServerTCPConnection::Listen(unsigned int port, unsigned int backlog)
 
 		if (setsockopt(m_listenerSock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
 		{
-			closesocket(m_listenerSock);
+			CLOSESOCKET(m_listenerSock);
 			continue;
 		}
 
 		if (bind(m_listenerSock, res->ai_addr, res->ai_addrlen) == -1)
 		{
-			closesocket(m_listenerSock);
+			CLOSESOCKET(m_listenerSock);
 			continue;
 		}
 
@@ -106,19 +150,21 @@ int ServerTCPConnection::Listen(unsigned int port, unsigned int backlog)
 		return -1;
 	}
 
+	// set to non blocking
+	int mode = 1;
+	ioctlsocket(m_listenerSock, FIONBIO, (u_long FAR*) &mode);
+
 	if (listen(m_listenerSock, backlog) == -1)
 	{
 		return -1;
 	}
 
-	//FD_SET(m_listenerSock, &m_master);
-	m_fdmax = m_listenerSock;
 	SetConnectionState(TCP_CONNECTION_READY);
 	return TCP_OPERATION_SUCCESSFULL;
 
 }
 
-bool ServerTCPConnection::AcceptNewConnection(unsigned int& clientid)
+bool ServerTCPConnection::AcceptNewConnection()
 {
 	fd_set setR;
 	timeval tval = { 0, 0 }; // this make select return immediately
@@ -130,24 +176,26 @@ bool ServerTCPConnection::AcceptNewConnection(unsigned int& clientid)
 		// new connection
 		sockaddr_storage remoteAddr;		
 		socklen_t addrlen = sizeof(remoteAddr);
-		m_newclientSock = accept(m_listenerSock, (sockaddr*)&remoteAddr, &addrlen);
+		m_lastClientSock = accept(m_listenerSock, (sockaddr*)&remoteAddr, &addrlen);
 		
-		if (m_newclientSock < 0)
+		if (m_lastClientSock < 0)
 		{
 			return false;
 		}
+		m_lastClientId = GenerateDummyClientid();
+		m_peersList.AddNewTCPPeer(m_lastClientSock, m_lastClientId);
 		char remoteIP[INET6_ADDRSTRLEN];
 		LOGGER_DEBUG("ServerTCPConnection: new connection from %s on socket %d\n",
 					inet_ntop(remoteAddr.ss_family, get_in_addr((struct sockaddr*)&remoteAddr), remoteIP, INET6_ADDRSTRLEN),
-					m_newclientSock);
-		sessions.insert(std::pair<unsigned int, unsigned int>(clientid, m_newclientSock));		
+					m_lastClientSock);
+		
 		return true;
 	}
 	return false;
 }
 
 
-int ServerTCPConnection::SendData(unsigned int clientid, const char* data, unsigned int dataSize)
+int ServerTCPConnection::SendData(std::string clientid, const char* data, unsigned int dataSize)
 {
 	if (data == nullptr)
 	{
@@ -167,7 +215,7 @@ int ServerTCPConnection::SendData(unsigned int clientid, const char* data, unsig
 		return TCP_ERROR_CONNECTION_NOT_READY;
 	}
 	
-	int clientSock = GetClientSocketById(clientid);
+	int clientSock = m_peersList.GetSocketById(clientid);
 	if (clientSock < 0)
 	{
 		LOGGER_DEBUG("ERROR: SendData failed because couldn't find clientid !\n");
@@ -183,7 +231,7 @@ int ServerTCPConnection::SendData(unsigned int clientid, const char* data, unsig
 	int result = select(clientSock + 1, NULL, &setW, NULL, &tval);
 	if (result < 0)
 	{
-		LOGGER_DEBUG("ERROR: SendData select failed! err %d\n", WSAGetLastError());
+		LOGGER_DEBUG("ERROR: SendData select failed! err %d\n", GETLASTERROR());
 		CloseConnection();
 
 		return TCP_ERROR_SOCKET_BUSY;
@@ -192,7 +240,7 @@ int ServerTCPConnection::SendData(unsigned int clientid, const char* data, unsig
 	if (result == 0)
 	{
 		//this means the socket is not ready for writing after 1 second!
-		LOGGER_DEBUG("ERROR: sending data socket busy! err %d\n", WSAGetLastError());
+		LOGGER_DEBUG("ERROR: sending data socket busy! err %d\n", GETLASTERROR());
 		CloseConnection();
 
 		return TCP_ERROR_SOCKET_BUSY;
@@ -202,7 +250,7 @@ int ServerTCPConnection::SendData(unsigned int clientid, const char* data, unsig
 	result = send(clientSock, (const char *)data, dataSize, 0);
 	if (result < 0)
 	{
-		LOGGER_DEBUG("ERROR: sending data on socket failed! err %d\n", WSAGetLastError());
+		LOGGER_DEBUG("ERROR: sending data on socket failed! err %d\n", GETLASTERROR());
 		CloseConnection();
 		return TCP_ERROR_SENDING_DATA_FAIL;
 	}
@@ -215,12 +263,12 @@ int ServerTCPConnection::SendData(unsigned int clientid, const char* data, unsig
 	}
 	else
 	{
-		LOGGER_DEBUG("ERROR: incomplete send! bytes sent %d, data size %d!err %d\n", result, dataSize, WSAGetLastError());
+		LOGGER_DEBUG("ERROR: incomplete send! bytes sent %d, data size %d!err %d\n", result, dataSize, GETLASTERROR());
 		return TCP_ERROR_SEND_INCOMPLETED;
 	}
 }
 
-int ServerTCPConnection::ReceiveData(unsigned int clientid, char* receivedData, unsigned int receivedDataBuffLength, unsigned int& dataLength)
+int ServerTCPConnection::ReceiveData(std::string clientid, char* receivedData, unsigned int receivedDataBuffLength, unsigned int& dataLength)
 {	
 	if (GetConnectionState() != TCP_CONNECTION_READY)
 	{
@@ -228,7 +276,7 @@ int ServerTCPConnection::ReceiveData(unsigned int clientid, char* receivedData, 
 		return TCP_ERROR_CONNECTION_NOT_READY;
 	}
 	
-	int clientSock = GetClientSocketById(clientid);
+	int clientSock = m_peersList.GetSocketById(clientid);
 	if (clientSock < 0)
 	{
 		LOGGER_DEBUG("ERROR: ReceiveData failed because couldn't find clientid !\n");
@@ -246,7 +294,7 @@ int ServerTCPConnection::ReceiveData(unsigned int clientid, char* receivedData, 
 		int result = recv(clientSock, m_receiveDataBuffer, SERVER_TCP_RECV_DATA_BUFF_SIZE, 0);
 		if (result < 0)
 		{
-			LOGGER_DEBUG("ERROR: Receive data failed! result %d, err %d\n", result, WSAGetLastError());
+			LOGGER_DEBUG("ERROR: Receive data failed! result %d, err %d\n", result, GETLASTERROR());
 			CloseConnection();
 
 			return TCP_ERROR_RECEIVING_DATA;
@@ -282,16 +330,6 @@ int ServerTCPConnection::ReceiveData(unsigned int clientid, char* receivedData, 
 	return TCP_OPERATION_SUCCESSFULL;	
 }
 
-int ServerTCPConnection::GetClientSocketById(unsigned int clientid)
-{
-	if (sessions.find(clientid) == sessions.end())
-	{
-		LOGGER_DEBUG("ERROR: couldn't find client id : %d \n", clientid);
-		return -1;
-	}
-
-	return sessions[clientid];
-}
 void ServerTCPConnection::SetConnectionState(int state)
 {
 	m_connectionState = state;
@@ -300,4 +338,14 @@ void ServerTCPConnection::SetConnectionState(int state)
 int ServerTCPConnection::GetConnectionState()
 {
 	return m_connectionState;
+}
+
+std::string ServerTCPConnection::GetLastConnectedClientId()
+{
+	return m_lastClientId;
+}
+
+std::string ServerTCPConnection::GenerateDummyClientid()
+{
+	return random_string(16);
 }

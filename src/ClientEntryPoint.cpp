@@ -16,13 +16,9 @@ int main(int argc, char** argv)
 	
 	std::string hostname = "localhost";
 	//std::string hostname = "mdb-anubis-gsb006.gameloft.com";
-	unsigned int port = 36666;
+	unsigned int port = 36666;//36666;
 	/*
-	INTERACTIVE_PRINT("\n Input the host name : ");
-	std::cin >> hostname;
-	INTERACTIVE_PRINT("\n Input the port : ");
-	std::cin >> (unsigned int) port;
-	INTERACTIVE_PRINT("\n");
+	
 
 	INTERACTIVE_PRINT("Connecting to server %s : %d \n", hostname.c_str(), port);
 	/**/
@@ -49,8 +45,12 @@ int main(int argc, char** argv)
 			//*
 			if (connection.ConnectToServer(hostname, port) != TCPConnection::TCP_OPERATION_SUCCESSFULL)
 			{
-				INTERACTIVE_PRINT("Failed to connect \n");
+				INTERACTIVE_PRINT("Failed to connec to Host: %s , Port:  %d \n", hostname.c_str(), port);
+				INTERACTIVE_PRINT("\n Input the host name : ");
 				std::cin >> hostname;
+				INTERACTIVE_PRINT("\n Input the port : ");
+				std::cin >> (unsigned int)port;
+				INTERACTIVE_PRINT("\n");
 
 				need_connect = true;				
 				continue;
@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 		}
 
 		datalen = 0;
-		if(connection.ReceiveData(server_reply_buffer, sizeof(server_reply_buffer), datalen) == TCPConnection::TCP_ERROR_CONNECTION_NOT_READY);
+		if(connection.ReceiveData(server_reply_buffer, sizeof(server_reply_buffer), datalen) == TCPConnection::TCP_ERROR_CONNECTION_NOT_READY)
 		{
 			need_connect = true;
 			continue;

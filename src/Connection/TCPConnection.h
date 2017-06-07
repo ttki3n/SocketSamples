@@ -5,8 +5,7 @@
 #include "common.h"
 #include "Socket\Socket.h"
 
-// max of TCP buffer is 65535
-#define TCP_RECV_DATA_BUFF_SIZE 10240
+
 
 class TCPConnection
 {
@@ -30,8 +29,8 @@ public:
 		TCP_ERROR_SEND_INCOMPLETED,
 		TCP_ERROR_RECEIVING_DATA,
 		TCP_ERROR_CONNECTION_CLOSED_BY_OTHER_PEER,
-		TCP_ERROR_INTERNAL_BUFFER_TO_SMALL,
-		TCP_ERROR_PROVIDED_BUFFER_TO_SMALL
+		TCP_ERROR_INTERNAL_BUFFER_TOO_SMALL,
+		TCP_ERROR_PROVIDED_BUFFER_TOO_SMALL
 
 	};
 
@@ -54,7 +53,8 @@ private:
 	int m_socket;
 	int m_connectionState;
 	//std::string m_host;
-	char m_receiveDataBuffer[TCP_RECV_DATA_BUFF_SIZE];
+	int m_currentOffset;
+	char m_receiveDataBuffer[TCP_INTERNAL_RECV_DATA_BUFF_SIZE];
 	
 
 
