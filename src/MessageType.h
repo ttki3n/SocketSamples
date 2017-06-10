@@ -1,0 +1,7 @@
+#pragma once
+
+enum TCPMSG
+{
+	CLIENT_SEND_CHAT_MSG = 0,
+	SERVER_SEND_CHAT_MSG
+};

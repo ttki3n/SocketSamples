@@ -56,7 +56,7 @@ int TCPConnection::ConnectToServer(const std::string& host, unsigned int port)
 	struct addrinfo hints, *res, *res0;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 
 	int error = getaddrinfo(host.c_str(), serverPort, &hints, &res0);

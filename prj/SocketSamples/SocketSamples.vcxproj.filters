@@ -42,20 +42,20 @@
     <ClCompile Include="..\..\src\SimpleFilesLogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ClientEntryPoint.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Connection\ServerTCPConnection.cpp">
       <Filter>Source Files\Connection</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\ServerEntryPoint.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Server\Server.cpp">
       <Filter>Source Files\Server</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Client\ClientApp.cpp">
       <Filter>Source Files\Client</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Server\SClient.cpp">
+      <Filter>Source Files\Server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\TestEntryPoint.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -82,6 +82,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\Client\ClientApp.h">
       <Filter>Source Files\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\MessageType.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Server\SClient.h">
+      <Filter>Source Files\Server</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

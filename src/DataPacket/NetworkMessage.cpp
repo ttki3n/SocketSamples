@@ -4,11 +4,12 @@
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-NetworkMessageW::NetworkMessageW()
+NetworkMessageW::NetworkMessageW(unsigned int type)
 {
 	m_msgLen = 0;
 	m_uncompressedLen = 0;
 	m_flags = 0;
+	AddMessageType(type);
 }
 
 NetworkMessageW::~NetworkMessageW()
@@ -60,7 +61,7 @@ void NetworkMessageW::AddInt(int i)
 
 int NetworkMessageR::GetInt()
 {
-	if (m_curPos < m_msgLen - 4)
+	if (m_curPos > m_msgLen - 4)
 	{
 		return 0;
 	}

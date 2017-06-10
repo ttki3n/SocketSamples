@@ -18,6 +18,11 @@ public:
 	bool RemoveTCPPeer(const std::string& clientid);
 
 	int GetSocketById(const std::string& clientid);
+	int GetPeersCount();
+
+	FD_SET m_currentSocks;
+	FD_SET m_socksR;
+	int m_maxFd;
 
 private:
 	std::map<std::string, int> m_peerList; // pair of clientid and clientsocket
@@ -59,7 +64,9 @@ public:
 	bool AcceptNewConnection();
 
 	int SendData(std::string clientid, const char* data, unsigned int dataSize);
-	int	ReceiveData(std::string clientid, char* receivedData, unsigned int receivedDataBuffLength, unsigned int& dataLength);
+	int CheckSocketsHaveData();
+	bool IsPeerHasData(const std::string& id);
+	int	ReceiveData(std::string clientid, unsigned char* receivedData, unsigned int receivedDataBuffLength);
 
 	std::string GenerateDummyClientid();
 	
@@ -67,6 +74,10 @@ public:
 	int GetConnectionState();
 
 	std::string GetLastConnectedClientId();
+	int GetLastConnectedSocket();
+	int GetNumberOfPeers();
+	bool AddPeer(int socket, const std::string& id);
+	bool RemovePeer(const std::string& id);
 private:
 	int m_connectionState;
 	int m_listenerSock;

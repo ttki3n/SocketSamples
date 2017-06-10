@@ -5,7 +5,7 @@
 
 // max of TCP buffer is 65535
 // define max size when call recv of socket
-#define TCP_INTERNAL_RECV_DATA_BUFF_SIZE 10240
+#define TCP_INTERNAL_RECV_DATA_BUFF_SIZE 65535
 
 // define max size when client call receivedata of connection's wrapper, should cover maximum of msg's size
 #define TCP_CLIENT_RECEIVED_DATA_BUFFER_SIZE (512*1024)

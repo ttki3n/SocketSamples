@@ -54,12 +54,15 @@ int TCPPeersList::GetSocketById(const std::string& clientid)
 	return -1;
 }
 
-
+int TCPPeersList::GetPeersCount()
+{
+	return m_peerList.size();
+}
 ServerTCPConnection::ServerTCPConnection()
 {
 	m_listenerSock = -1;
 	m_lastClientSock = -1;	
-
+	
 	PrepareConnection();
 	SetConnectionState(TCP_CONNECTION_NONE);
 }
@@ -183,7 +186,7 @@ bool ServerTCPConnection::AcceptNewConnection()
 			return false;
 		}
 		m_lastClientId = GenerateDummyClientid();
-		m_peersList.AddNewTCPPeer(m_lastClientSock, m_lastClientId);
+		
 		char remoteIP[INET6_ADDRSTRLEN];
 		LOGGER_DEBUG("ServerTCPConnection: new connection from %s on socket %d\n",
 					inet_ntop(remoteAddr.ss_family, get_in_addr((struct sockaddr*)&remoteAddr), remoteIP, INET6_ADDRSTRLEN),
@@ -197,6 +200,7 @@ bool ServerTCPConnection::AcceptNewConnection()
 
 int ServerTCPConnection::SendData(std::string clientid, const char* data, unsigned int dataSize)
 {
+	/*
 	if (data == nullptr)
 	{
 		LOGGER_DEBUG("ERROR: SendData failed because data is null!\n");
@@ -214,40 +218,11 @@ int ServerTCPConnection::SendData(std::string clientid, const char* data, unsign
 		LOGGER_DEBUG("ERROR: SendData failed because communication not yet started!\n");
 		return TCP_ERROR_CONNECTION_NOT_READY;
 	}
-	
+	*/
 	int clientSock = m_peersList.GetSocketById(clientid);
-	if (clientSock < 0)
-	{
-		LOGGER_DEBUG("ERROR: SendData failed because couldn't find clientid !\n");
-		return TCP_ERROR_CONNECTION_NOT_READY;
-	}
-	//when the iphone loses wireless signal, it may block indefinetly in select() - so limit is required
-	timeval tval = { 0, 10 };
-
-	fd_set setW;
-	FD_ZERO(&setW);
-	FD_SET(clientSock, &setW);
-
-	int result = select(clientSock + 1, NULL, &setW, NULL, &tval);
-	if (result < 0)
-	{
-		LOGGER_DEBUG("ERROR: SendData select failed! err %d\n", GETLASTERROR());
-		CloseConnection();
-
-		return TCP_ERROR_SOCKET_BUSY;
-	}
-
-	if (result == 0)
-	{
-		//this means the socket is not ready for writing after 1 second!
-		LOGGER_DEBUG("ERROR: sending data socket busy! err %d\n", GETLASTERROR());
-		CloseConnection();
-
-		return TCP_ERROR_SOCKET_BUSY;
-	}
-
+	
 	//send the data
-	result = send(clientSock, (const char *)data, dataSize, 0);
+	int result = send(clientSock, data, dataSize, 0);
 	if (result < 0)
 	{
 		LOGGER_DEBUG("ERROR: sending data on socket failed! err %d\n", GETLASTERROR());
@@ -268,66 +243,42 @@ int ServerTCPConnection::SendData(std::string clientid, const char* data, unsign
 	}
 }
 
-int ServerTCPConnection::ReceiveData(std::string clientid, char* receivedData, unsigned int receivedDataBuffLength, unsigned int& dataLength)
-{	
-	if (GetConnectionState() != TCP_CONNECTION_READY)
-	{
-		LOGGER_DEBUG("ERROR: ReceiveData failed because communication not yet started!\n");
-		return TCP_ERROR_CONNECTION_NOT_READY;
-	}
+int ServerTCPConnection::CheckSocketsHaveData()
+{
+	int iResult = 0;
+
+	if (m_peersList.GetPeersCount() == 0)
+		return iResult;
+
+	//check if we have something new
+	timeval tval = { 0, 0 };
+	FD_ZERO(&m_peersList.m_socksR);
+	m_peersList.m_socksR = m_peersList.m_currentSocks;
 	
+	iResult = select(m_peersList.m_maxFd, &m_peersList.m_socksR, nullptr, nullptr, &tval);
+
+	return iResult;
+}
+
+bool ServerTCPConnection::IsPeerHasData(const std::string& id)
+{
+	// check from the last time call CheckSocketsHaveData
+	if (FD_ISSET(m_peersList.GetSocketById(id), &m_peersList.m_socksR) == 0)
+		return false;
+	return true;
+}
+
+int ServerTCPConnection::ReceiveData(std::string clientid, unsigned char* receivedData, unsigned int receivedDataBuffLength)
+{		
 	int clientSock = m_peersList.GetSocketById(clientid);
-	if (clientSock < 0)
+	int result = recv(clientSock, (char*)receivedData, receivedDataBuffLength, 0);
+	if (result < 0)
 	{
-		LOGGER_DEBUG("ERROR: ReceiveData failed because couldn't find clientid !\n");
-		return TCP_ERROR_CONNECTION_NOT_READY;
+		//LOGGER_DEBUG("ERROR: Receive data failed! result %d, err %d\n", result, GETLASTERROR());
+		//CloseConnection();			
 	}
-	fd_set setR;
-	timeval tval = { 0, 0 }; // this make select return immediately
-	FD_ZERO(&setR);
-	FD_SET(clientSock, &setR);
-
-	size_t currentOffset = 0;
-	//check to see if we received any data
-	while (select(clientSock + 1, &setR, NULL, NULL, &tval))
-	{
-		int result = recv(clientSock, m_receiveDataBuffer, SERVER_TCP_RECV_DATA_BUFF_SIZE, 0);
-		if (result < 0)
-		{
-			LOGGER_DEBUG("ERROR: Receive data failed! result %d, err %d\n", result, GETLASTERROR());
-			CloseConnection();
-
-			return TCP_ERROR_RECEIVING_DATA;
-		}
-
-		if (result == 0)
-		{
-			LOGGER_DEBUG("Connection closed by the other peer!\n");
-			CloseConnection();
-
-			return TCP_ERROR_CONNECTION_CLOSED_BY_OTHER_PEER;
-		}
-
-		if (result > SERVER_TCP_RECV_DATA_BUFF_SIZE)
-		{
-			LOGGER_CRIT("ERROR: Internal receive BUFF too small! size %d\n", result);
-			return TCP_ERROR_INTERNAL_BUFFER_TO_SMALL;
-		}
-
-		if (currentOffset + result > receivedDataBuffLength)
-		{
-			LOGGER_DEBUG("ERROR: Receive messages are bigger than recv buff! size %d\n", currentOffset + result);
-			return TCP_ERROR_PROVIDED_BUFFER_TO_SMALL;
-		}
-		memcpy(receivedData + currentOffset, m_receiveDataBuffer, result);
-		currentOffset += result;
-
-		LOGGER_DEBUG("Received %d bytes\n", result);
-	}
-
-	dataLength = currentOffset;
 	
-	return TCP_OPERATION_SUCCESSFULL;	
+	return result;
 }
 
 void ServerTCPConnection::SetConnectionState(int state)
@@ -338,6 +289,26 @@ void ServerTCPConnection::SetConnectionState(int state)
 int ServerTCPConnection::GetConnectionState()
 {
 	return m_connectionState;
+}
+
+int ServerTCPConnection::GetNumberOfPeers()
+{
+	return m_peersList.GetPeersCount();
+}
+
+bool ServerTCPConnection::AddPeer(int sock, const std::string& id)
+{
+	return m_peersList.AddNewTCPPeer(sock, id);
+}
+
+bool ServerTCPConnection::RemovePeer(const std::string& id)
+{
+	return m_peersList.RemoveTCPPeer(id);
+}
+
+int ServerTCPConnection::GetLastConnectedSocket()
+{
+	return m_lastClientSock;
 }
 
 std::string ServerTCPConnection::GetLastConnectedClientId()

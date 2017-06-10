@@ -1,7 +1,8 @@
 #pragma once
 
 #include <vector>
-#define MESSAGE_HEADER_SIZE			(13)
+#include "MessageType.h"
+#define TCP_MESSAGE_HEADER_SIZE			(13)
 
 
 #define FLAG_ENCRIPTED				(0x1)
@@ -12,7 +13,7 @@ typedef unsigned char byte;
 class NetworkMessageW
 {
 public:
-	NetworkMessageW();
+	NetworkMessageW(unsigned int type);
 	virtual ~NetworkMessageW();
 
 	void AddByte(byte);
@@ -24,7 +25,7 @@ public:
 	void AddString(const char*);
 	void AddString(const std::string&);
 	
-	void AddMessageType(unsigned int);	
+		
 	void Pack(bool compress = false);
 
 	inline	const unsigned int GetMsgSize() const { return m_msgLen; }
@@ -33,6 +34,7 @@ public:
 private:
 	void SetHeader();
 	void AddTempHeader();
+	void AddMessageType(unsigned int);
 
 	std::vector<byte> m_msgBody;
 	unsigned int m_msgLen;

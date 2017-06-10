@@ -29,3 +29,6 @@
 #	include <fcntl.h>
 #endif
 
+#include <map>
+#include <vector>
+#include <string>
