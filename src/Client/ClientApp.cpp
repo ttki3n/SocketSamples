@@ -88,7 +88,7 @@ void ClientApp::ReceiveDataFromServer()
 	m_recvSize = 0;
 
 	// should check result?
-	if (m_tcp->ReceiveData((char*)(m_recvBuffer + m_fragmentSize), TCP_CLIENT_RECEIVED_DATA_BUFFER_SIZE - m_fragmentSize, m_recvSize) == TCPConnection::TCP_ERROR_CONNECTION_NOT_READY)
+	if (m_tcp->ReceiveData((char*)(m_recvBuffer + m_fragmentSize), TCP_CLIENT_RECEIVED_DATA_BUFFER_SIZE - m_fragmentSize, m_recvSize) != TCPConnection::TCP_OPERATION_SUCCESSFULL)
 	{
 		m_currentState = CLIENT_STATE_TRY_TO_RECONNECT;
 		return;

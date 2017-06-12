@@ -39,7 +39,7 @@ int ServerApp::Update()
 			RemoveErrorClients();
 			HandleNewClients();
 			ReceiveData();
-			if (m_curTime - m_prevTime > 30)
+			if (m_curTime - m_prevTime > 20)
 			{
 				char text[50] = "Hello user from server";
 				NetworkMessageW msg(TCPMSG::SERVER_SEND_CHAT_MSG);
@@ -118,7 +118,7 @@ void ServerApp::ReceiveData()
 			//got data			
 			unsigned int recvDataSize = keptSize + iResult;
 
-			int leftOverSize = 0;//ParseMessages(m_recvBuffer, recvDataSize, it->first);
+			int leftOverSize = ParseMessages(m_recvBuffer, recvDataSize, it->first);
 			if (leftOverSize > 0)
 			{
 				it->second->m_tcpFragmentSize = leftOverSize;
@@ -145,6 +145,50 @@ int ServerApp::AddTCPFragmentToRecvBuff(const unsigned char* src, const unsigned
 
 	return 0;
 }
+
+unsigned int ServerApp::ParseMessages(unsigned char* iBuffer, unsigned int length, const std::string& clientid)
+{
+	// process each complete msg, return the rest
+	unsigned int offset = 0;
+	unsigned int msgSize = 0;
+	while (offset < length)
+	{
+		if (length - offset < TCP_MESSAGE_HEADER_SIZE)
+		{
+			// partial msg
+			return length - offset;
+		}
+
+		NetworkMessageR msg(iBuffer + offset, length);
+		msgSize = msg.GetMsgSize();
+
+		if (msgSize >(int)length - offset)
+		{
+			// partial msg
+			return length - offset;
+		}
+		// should we push msg to queue and process it?
+		ParseMessage(msg, clientid);
+		offset += msgSize;
+	}
+	return 0;
+}
+
+
+void ServerApp::ParseMessage(NetworkMessageR& msg, const std::string& clientid)
+{
+	unsigned int msgType = msg.GetMsgType();
+	switch (msgType)
+	{
+	case TCPMSG::CLIENT_SEND_CHAT_MSG:
+		std::string chatmsg;
+		msg.GetString(chatmsg);		
+		LOGGER_DEBUG("Received chat message from client %s : %s\n", clientid.c_str(), chatmsg.c_str());
+		break;
+
+	}
+}
+
 
 void ServerApp::HandleNewClients()
 {	

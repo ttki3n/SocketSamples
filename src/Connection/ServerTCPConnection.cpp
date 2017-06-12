@@ -21,6 +21,7 @@ bool TCPPeersList::AddNewTCPPeer(int socket, const std::string& clientid)
 	}
 
 	m_peerList.insert(std::pair<std::string,int> (clientid, socket));
+	FD_SET(socket, &m_currentSocks);
 	return true;
 }
 
@@ -163,6 +164,7 @@ int ServerTCPConnection::Listen(unsigned int port, unsigned int backlog)
 	}
 
 	SetConnectionState(TCP_CONNECTION_READY);
+	LOGGER_DEBUG("Binding and Listenning were successful !!! Port: %d \n", port);
 	return TCP_OPERATION_SUCCESSFULL;
 
 }
@@ -188,9 +190,9 @@ bool ServerTCPConnection::AcceptNewConnection()
 		m_lastClientId = GenerateDummyClientid();
 		
 		char remoteIP[INET6_ADDRSTRLEN];
-		LOGGER_DEBUG("ServerTCPConnection: new connection from %s on socket %d\n",
+		LOGGER_DEBUG("ServerTCPConnection: new connection from %s on socket %d , clientid = %s\n",
 					inet_ntop(remoteAddr.ss_family, get_in_addr((struct sockaddr*)&remoteAddr), remoteIP, INET6_ADDRSTRLEN),
-					m_lastClientSock);
+					m_lastClientSock, m_lastClientId.c_str());
 		
 		return true;
 	}

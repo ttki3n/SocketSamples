@@ -39,6 +39,8 @@ public:
 	bool SendDataToAllClients(const NetworkMessageW& msg);
 	void ReceiveData();	
 	int AddTCPFragmentToRecvBuff(const unsigned char* src, const unsigned int &size);
+	unsigned int ParseMessages(unsigned char* iBuffer, unsigned int length, const std::string& clientid);
+	void ParseMessage(NetworkMessageR& msg, const std::string& clientid);
 
 	std::map<std::string, SClient*>	m_clientsList;
 
